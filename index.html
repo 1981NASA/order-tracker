@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>客戶訂單查詢系統</title>
+  <style>
+    body {
+      font-family: Segoe UI, sans-serif;
+      padding: 30px;
+      background-color: #f0f2f5;
+      max-width: 900px;
+      margin: auto;
+    }
+    h2 {
+      color: #333;
+    }
+    input, button {
+      padding: 10px 12px;
+      font-size: 16px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    .order {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .progress-bar-bg {
+      width: 100%;
+      background: #eee;
+      border-radius: 5px;
+      margin-top: 5px;
+    }
+    .progress-bar-fill {
+      height: 20px;
+      color: white;
+      text-align: center;
+      border-radius: 5px;
+      font-size: 14px;
+      line-height: 20px;
+    }
+    .label {
+      font-weight: bold;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h2>📦 客戶訂單查詢</h2>
+  <p>請輸入您的 <strong>Customer Name</strong>（例如：<code>GUNGDAI</code>）：</p>
+  <input type="text" id="customerInput" placeholder="輸入客戶名稱">
+  <button onclick="fetchOrders()">查詢</button>
+  <div id="results"></div>
+
+  <script>
+    const apiUrl = "https://script.google.com/macros/s/AKfycbzmKQuhmxXBbbKRlyR0bkrlG4iW262uMEmLTkWmIWvgJ29-mXonwWFgEXnAL7I3bbs3/exec?";
+
+    function getProgressBar(status) {
+      let percent = 0, color = "#bbb";
+      switch (status) {
+        case "Received":
+        case "已接單":
+          percent = 25; color = "#4caf50"; break;
+        case "Quality Inspection":
+          percent = 40; color = "#00bcd4"; break;
+        case "Ready to Ship":
+          percent = 60; color = "#2196F3"; break;
+        case "Shipped":
+          percent = 80; color = "#ff9800"; break;
+        case "Completed":
+        case "已完成":
+          percent = 100; color = "#4caf50"; break;
+      }
+      return `
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" style="width:${percent}%; background:${color};">${status}</div>
+        </div>`;
+    }
+
+    function fetchOrders() {
+      const customer = document.getElementById("customerInput").value.trim();
+      const results = document.getElementById("results");
+
+      if (!customer) {
+        results.innerHTML = "<p style='color:red;'>請輸入客戶名稱</p>";
+        return;
+      }
+
+      results.innerHTML = "⏳ 查詢中...";
+
+      fetch(apiUrl + "customer=" + encodeURIComponent(customer))
+        .then(res => res.json())
+        .then(data => {
+          results.innerHTML = "";
+          if (!data.length) {
+            results.innerHTML = "<p>❌ 查無訂單資料</p>";
+            return;
+          }
+
+          data.forEach(order => {
+            results.innerHTML += `
+              <div class="order">
+                <p><span class="label">訂單號碼：</span> ${order["Order Number"] || ""}</p>
+                <p><span class="label">客戶名稱：</span> ${order["Customer Name"] || ""}</p>
+                <p><span class="label">金額：</span> ${order["Order Amount"] || ""}（已付 ${order["Paid Amount"] || ""}）</p>
+                <p><span class="label">交期：</span> ${order["Estimated Delivery"] || ""}</p>
+                <p><span class="label">備註：</span> ${order["Remarks"] || "無"}</p>
+                <p><span class="label">狀態：</span></p>
+                ${getProgressBar(order["Order Status"] || "未設定")}
+              </div>
+            `;
+          });
+        })
+        .catch(err => {
+          results.innerHTML = "<p style='color:red;'>❌ 發生錯誤，請稍後再試。</p>";
+          console.error(err);
+        });
+    }
+  </script>
+</body>
+</html>
